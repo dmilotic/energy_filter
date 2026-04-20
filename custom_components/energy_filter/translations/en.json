@@ -1,0 +1,54 @@
+{
+  "title": "Energy Filter",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add Energy Filter",
+        "description": "Select source energy entity:",
+        "data": {
+          "source_entity": "Source entity"
+        }
+      },
+      "options": {
+        "title": "Update configuration",
+        "data": {
+          "keep_available": "Keep available",
+          "keep_last_value": "Keep last value",
+          "expected_reset_interval": "Expected reset interval",
+          "expected_overrun_minutes": "Expected Overrun (minutes)"
+        },
+        "data_description": {
+          "keep_available": "Keep this entity available even if source entity is unavailable",
+          "keep_last_value": "Keep this entity on last valid value, if unchecked entity will become unavailable on invalid source entity state",
+          "expected_reset_interval": "Expected interval when source entity will be reset,\nthis energy entity will also be reset in those intervals",
+          "expected_overrun_minutes": "If this period expires then this entity will be reset even if source entity doesn't reset."
+        }
+      }
+    },
+    "error": {
+      "unknown": "An unexpected error occurred. Please try again."
+    },
+    "abort": {
+      "already_configured": "This Energy filter is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Update configuration",
+        "data": {
+          "keep_available": "Keep available",
+          "keep_last_value": "Keep last value",
+          "expected_reset_interval": "Expected reset interval",
+          "expected_overrun_minutes": "Expected Overrun (minutes)"
+        },
+        "data_description": {
+          "keep_available": "Keep this entity available even if source entity is unavailable",
+          "keep_last_value": "Keep this entity on last valid value, if unchecked entity will become unavailable on invalid source entity state",
+          "expected_reset_interval": "Expected interval when source entity will be reset,\nthis energy entity will also be reset in those intervals",
+          "expected_overrun_minutes": "If this period expires then this entity will be reset even if source entity doesn't reset."
+        }
+      }
+    }
+  }
+}

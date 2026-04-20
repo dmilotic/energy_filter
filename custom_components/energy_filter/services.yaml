@@ -1,0 +1,7 @@
+reset:
+  name: Reset
+  description: Reset filtered sensor to current source sensor value.
+  target:
+    entity:
+      domain: sensor
+      integration: energy_filter
