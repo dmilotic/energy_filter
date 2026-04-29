@@ -15,8 +15,8 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, callback
-
-# from homeassistant.helpers.device_registry import DeviceEntryType
+from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import (
     AddEntitiesCallback,
     async_get_current_platform,
@@ -28,9 +28,7 @@ from homeassistant.helpers.event import (
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    CONF_NAME,
     CONF_SOURCE_ENTITY,
-    CONF_UNIT_OF_MEASUREMENT,
     DEFAULT_EXPECTED_OVERRUN_MINUTES,
     DEFAULT_EXPECTED_RESET_INTERVAL,
     DEFAULT_KEEP_AVAILABLE,
@@ -50,7 +48,30 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    async_add_entities([EnergyFilterSensor(entry)])
+    ent_reg = er.async_get(hass)
+    dev_reg = dr.async_get(hass)
+
+    source_entity_id = entry.data[CONF_SOURCE_ENTITY]
+    source_entry = ent_reg.async_get(source_entity_id)
+    if source_entry:
+        source_name = er.async_get_unprefixed_name(hass, source_entry)
+        source_unit_of_measurement = source_entry.unit_of_measurement
+        device_info = None
+        device_id = source_entry.device_id
+        if device_id:
+            device = dev_reg.async_get(device_id)
+            if device:
+                device_info = DeviceInfo(
+                    identifiers=device.identifiers,
+                )
+
+        async_add_entities(
+            [
+                EnergyFilterSensor(
+                    entry, source_name, source_unit_of_measurement, device_info
+                )
+            ]
+        )
 
     platform = async_get_current_platform()
     platform.async_register_entity_service("reset", {}, "async_reset")
@@ -89,13 +110,14 @@ class EnergyFilterExtraData(ExtraStoredData):
 
 
 class EnergyFilterSensor(RestoreSensor):
-    # _attr_has_entity_name = True
-    # _attr_name = "Filtered"
-
-    def __init__(self, entry: ConfigEntry) -> None:
+    def __init__(
+        self,
+        entry: ConfigEntry,
+        source_name: str,
+        source_unit_of_measurement: str | None,
+        device_info: DeviceInfo | None,
+    ) -> None:
         self._source_entity_id: str = entry.data[CONF_SOURCE_ENTITY]
-        conf_name = entry.data[CONF_NAME]
-        conf_unit_of_measurement = entry.data[CONF_UNIT_OF_MEASUREMENT]
 
         self._opt_keep_available: bool = entry.options.get(
             OPT_KEEP_AVAILABLE, DEFAULT_KEEP_AVAILABLE
@@ -114,14 +136,16 @@ class EnergyFilterSensor(RestoreSensor):
             )
         )
 
-        self._attr_has_entity_name = False
-        self._attr_name = f"{conf_name} Filtered"
         entry_unique_id = entry.unique_id or entry.entry_id
         self._attr_unique_id = f"{entry_unique_id}_filtered"
 
+        self._attr_has_entity_name = True
+        self._attr_name = f"{source_name} Filtered"
+        self._attr_device_info = device_info
+
         self._attr_device_class = SensorDeviceClass.ENERGY
         self._attr_state_class = SensorStateClass.TOTAL_INCREASING
-        self._attr_native_unit_of_measurement = conf_unit_of_measurement
+        self._attr_native_unit_of_measurement = source_unit_of_measurement
         self._attr_icon = "mdi:lightning-bolt-circle"
 
         self._last_value: float | None = None
@@ -255,11 +279,6 @@ class EnergyFilterSensor(RestoreSensor):
                 return
 
             if expected_reset_td >= self._opt_expected_overrun_td:
-                # self._last_value = 0.0
-                # self._wait_source_reset = True
-                # self._is_valid = False
-                # self.async_write_ha_state()
-                # return
                 _LOGGER.info(
                     "%s: rejected value %.3f, waiting for reset",
                     self._source_entity_id,

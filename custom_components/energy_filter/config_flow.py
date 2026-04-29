@@ -5,15 +5,12 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigFlow, OptionsFlow
-from homeassistant.const import ATTR_UNIT_OF_MEASUREMENT, UnitOfEnergy
 from homeassistant.core import callback
 from homeassistant.helpers.selector import selector
 from homeassistant.util import slugify
 
 from .const import (
-    CONF_NAME,
     CONF_SOURCE_ENTITY,
-    CONF_UNIT_OF_MEASUREMENT,
     DEFAULT_EXPECTED_OVERRUN_MINUTES,
     DEFAULT_EXPECTED_RESET_INTERVAL,
     DEFAULT_KEEP_AVAILABLE,
@@ -32,22 +29,11 @@ class EnergyFilterConfigFlow(ConfigFlow, domain=DOMAIN):
 
     def __init__(self) -> None:
         self._source_entity_id: str
-        self._name: str
-        self._unit_of_measurement: str
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None):
         errors = {}
         if user_input is not None:
             self._source_entity_id = user_input[CONF_SOURCE_ENTITY]
-            source_state = self.hass.states.get(self._source_entity_id)
-            if source_state is None:
-                errors["base"] = "invalid_sensor"
-            else:
-                self._name = source_state.name
-                self._unit_of_measurement = (
-                    source_state.attributes.get(ATTR_UNIT_OF_MEASUREMENT)
-                    or UnitOfEnergy.KILO_WATT_HOUR
-                )
 
             if not errors:
                 unique_id = slugify(self._source_entity_id)
@@ -76,22 +62,13 @@ class EnergyFilterConfigFlow(ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
-            # options = {
-            #     OPT_KEEP_AVAILABLE: user_input[OPT_KEEP_AVAILABLE],
-            #     OPT_KEEP_LAST_VALUE: user_input[OPT_KEEP_LAST_VALUE],
-            #     OPT_EXPECTED_RESET_INTERVAL: user_input[OPT_EXPECTED_RESET_INTERVAL],
-            #     OPT_EXPECTED_OVERRUN_MINUTES: user_input[OPT_EXPECTED_OVERRUN_MINUTES],
-            # }
-
             if not errors:
                 self._abort_if_unique_id_configured()
 
                 return self.async_create_entry(
-                    title=f"Energy Filter - {self._name}",
+                    title=f"Energy Filter ({self._source_entity_id})",
                     data={
                         CONF_SOURCE_ENTITY: self._source_entity_id,
-                        CONF_NAME: self._name,
-                        CONF_UNIT_OF_MEASUREMENT: self._unit_of_measurement,
                     },
                     options=user_input,
                 )

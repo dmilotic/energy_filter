@@ -2,8 +2,6 @@ from enum import Enum
 
 DOMAIN = "energy_filter"
 CONF_SOURCE_ENTITY = "source_entity"
-CONF_NAME = "name"
-CONF_UNIT_OF_MEASUREMENT = "unit_of_measurement"
 
 OPT_KEEP_AVAILABLE = "keep_available"
 OPT_KEEP_LAST_VALUE = "keep_last_value"
