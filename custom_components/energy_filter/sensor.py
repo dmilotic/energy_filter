@@ -1,22 +1,21 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-import logging
 from typing import Any
 
 from homeassistant.components.sensor import (
-    ExtraStoredData,
     RestoreSensor,
     SensorDeviceClass,
     SensorStateClass,
-    State,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import device_registry as dr, entity_registry as er
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.core import HomeAssistant, State, callback
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import (
     AddEntitiesCallback,
     async_get_current_platform,
@@ -25,6 +24,7 @@ from homeassistant.helpers.event import (
     async_track_state_change_event,
     async_track_time_interval,
 )
+from homeassistant.helpers.restore_state import ExtraStoredData
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -43,6 +43,15 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
+def _get_source_name(hass: HomeAssistant, entry: er.RegistryEntry) -> str:
+    """Return the entity name with the device name prefix stripped, if applicable."""
+    # entity_registry.async_get_unprefixed_name was removed in HA 2026.11,
+    # the equivalent is now the RegistryEntry.entity_name property.
+    if hasattr(entry, "entity_name"):
+        return entry.entity_name
+    return er.async_get_unprefixed_name(hass, entry)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -54,7 +63,7 @@ async def async_setup_entry(
     source_entity_id = entry.data[CONF_SOURCE_ENTITY]
     source_entry = ent_reg.async_get(source_entity_id)
     if source_entry:
-        source_name = er.async_get_unprefixed_name(hass, source_entry)
+        source_name = _get_source_name(hass, source_entry)
         source_unit_of_measurement = source_entry.unit_of_measurement
         device_info = None
         device_id = source_entry.device_id
